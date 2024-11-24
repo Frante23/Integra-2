@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const uri = process.env.CLUSTER || 'mongodb+srv://parker:avocato@parkingcheck.q8rss.mongodb.net/ParkingCheckIntegra?retryWrites=true&w=majority&appName=ParkingCheck';
+const uri = process.env.CLUSTER || 'mongodb+srv://Parker:Avocato@parkingcheck.brf5n.mongodb.net/?retryWrites=true&w=majority&appName=ParkingCheck';
 
 let isConnected: boolean = false; 
 
@@ -13,12 +13,12 @@ export async function run() {
   try {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
-      dbName: "ParkingCheckIntegra", 
+      dbName: "ParkingCheck", 
     });
       
     isConnected = true;
     console.log('Conectado a MongoDB');
-    return mongoose; 
+    return mongoose;
   } catch (error) {
     console.error('Error al conectar con MongoDB:', error);
     throw error; 
