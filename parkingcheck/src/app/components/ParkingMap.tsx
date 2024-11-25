@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 const ParkingMap = ({ isVip }: { isVip: boolean }) => {
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
@@ -18,29 +18,28 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
   ];
 
   useEffect(() => {
-    const storedSpot = localStorage.getItem('selectedSpot');
+    const storedSpot = localStorage.getItem("selectedSpot");
 
     if (storedSpot) {
       setSelectedSpot(storedSpot);
     } else if (!isVip) {
       const randomSpot = getRandomSpot();
       setSelectedSpot(randomSpot);
-      localStorage.setItem('selectedSpot', randomSpot);
+      localStorage.setItem("selectedSpot", randomSpot);
       reserveParkingSpot(randomSpot);
     }
   }, [isVip]);
 
-  // Fetch occupied spots from the database
   useEffect(() => {
     const fetchOccupiedSpots = async () => {
       try {
-        const response = await fetch('/api/parking');
+        const response = await fetch("/api/parking");
         const data = await response.json();
         if (response.ok) {
           setOccupiedSpots(data.estacionamientos.Park);
         }
       } catch (error) {
-        console.error('Error fetching occupied spots:', error);
+        console.error("Error fetching occupied spots:", error);
       }
     };
 
@@ -57,20 +56,32 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
       setSelectedSpot(newSpot);
 
       if (newSpot) {
-        localStorage.setItem('selectedSpot', newSpot);
+        localStorage.setItem("selectedSpot", newSpot);
       } else {
-        localStorage.removeItem('selectedSpot');
+        localStorage.removeItem("selectedSpot");
       }
     }
   };
 
   const ParkingSpot = ({ id, specialHeight }: { id: string; specialHeight?: string }) => (
     <div
-      className={`parking-spot ${selectedSpot === id ? 'selected' : ''} ${occupiedSpots.includes(id) ? 'used' : ''}`}
+      className={`parking-spot ${selectedSpot === id ? "selected" : ""} ${
+        occupiedSpots.includes(id) ? "used" : ""
+      }`}
       onClick={() => handleSpotClick(id)}
-      style={{ height: specialHeight || 'auto', border: '1px solid #ccc', margin: '5px', textAlign: 'center' }}
+      style={{
+        position: "relative",
+        height: specialHeight || "auto",
+        border: "1px solid #ccc",
+        margin: "5px",
+        textAlign: "center",
+        cursor: "pointer",
+      }}
     >
       {id}
+      <div className="tooltip">
+        aaaaaa
+      </div>
     </div>
   );
 
@@ -78,10 +89,10 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
     if (!spot) return;
 
     try {
-      const response = await fetch('/api/Set_Parking', {
-        method: 'POST',
+      const response = await fetch("/api/Set_Parking", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ Park: spot }),
       });
@@ -95,7 +106,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
             alert("Estacionamiento ocupado");
             const randomSpot = getRandomSpot();
             setSelectedSpot(randomSpot);
-            localStorage.setItem('selectedSpot', randomSpot);
+            localStorage.setItem("selectedSpot", randomSpot);
           } else {
             alert("Estacionamiento ocupado");
           }
@@ -104,7 +115,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
           if (!isVip) {
             const newRandomSpot = getRandomSpot();
             setSelectedSpot(newRandomSpot);
-            localStorage.setItem('selectedSpot', newRandomSpot);
+            localStorage.setItem("selectedSpot", newRandomSpot);
           }
         }
       }
@@ -114,7 +125,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
   };
 
   return (
-    <div className='centralReserve'>
+    <div className="centralReserve">
       <div className="parking-map">
         <div className="row">
           <div className="parking-lane" id="A">
