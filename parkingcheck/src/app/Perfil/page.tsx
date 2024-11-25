@@ -53,7 +53,7 @@ export default function Perfil() {
     
             const data = await response.json();
             setVehiculos(data.vehicle);
-            setShowPopup(true); // Muestra el popup
+            setShowPopup(true); 
         } catch (error) {
             console.error('Error al obtener vehículos:', error);
         }

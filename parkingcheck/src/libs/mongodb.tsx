@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const uri = process.env.CLUSTER || 'mongodb+srv://Parker:Avocato@parkingcheck.brf5n.mongodb.net/?retryWrites=true&w=majority&appName=ParkingCheck';
+const uri = process.env.CLUSTER;
 
 let isConnected: boolean = false; 
 

@@ -4,7 +4,6 @@ export interface IVehicle extends Document {
   Placa: string;
   Modelo: string;
   urlCar : string;
-  Color : string;
 }
 
 
