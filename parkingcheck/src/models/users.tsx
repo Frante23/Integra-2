@@ -8,6 +8,8 @@ export interface IUser extends Document {
   Vehiculos?: IVehicle[]; 
   url: string;
   vip: boolean;
+  incumplimientos: number; 
+  penalizadoHasta?: Date; 
 }
 
 // Definición del esquema del usuario
@@ -18,6 +20,8 @@ const userSchema = new Schema<IUser>({
   Vehiculos: [vehicleSchema],
   url: {type: String, required: false},
   vip: {type: Boolean, required: false, default: false},
+  incumplimientos: { type: Number, default: 0 },
+  penalizadoHasta: { type: Date, default: null },
 }, {
   collection: 'usuarios',
   timestamps: true,
