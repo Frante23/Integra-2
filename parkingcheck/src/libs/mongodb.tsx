@@ -13,7 +13,7 @@ export async function run() {
   try {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
-      dbName: "ParkingCheck", 
+      dbName: "Parking", 
     });
       
     isConnected = true;
