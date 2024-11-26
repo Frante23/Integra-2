@@ -6,7 +6,6 @@ import Operario from '@/models/operarios';
 import Notificacion from '@/models/notificaciones';
 import transporter from '@/utils/GmailRes';
 import { run } from "@/libs/mongodb";
-import { use } from 'react';
 
 export async function POST(req: Request) {
 
