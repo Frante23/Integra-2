@@ -6,7 +6,7 @@ import Parking from '@/models/parking';
 
 export async function POST(req: NextRequest) {
     try {
-        // Obtener el token de las cookies
+
         const galleta = cookies();
         const token = galleta.get("token")?.value;
 
@@ -14,12 +14,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Token missing or invalid" }, { status: 401 });
         }
 
-        // Verificar el token
         const secret = process.env.JWT_SECRET;
         const user = verify(token, secret) as { userId: string };
         const id = user.userId;
 
-        // Obtener los datos del cuerpo de la solicitud
+
         const data = await req.json();
         const park = data.Park;
 
@@ -27,16 +26,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Park data is missing" }, { status: 400 });
         }
 
-        // Separar sección y número
         const [Section, numero] = park.split("-");
         if (!Section || !numero) {
             return NextResponse.json({ message: "Invalid park format" }, { status: 400 });
         }
 
-        // Conectar a la base de datos
+
         await run();
 
-        // Buscar el espacio de estacionamiento
         const est = await Parking.findOne({
             section: Section,
             number: numero,
