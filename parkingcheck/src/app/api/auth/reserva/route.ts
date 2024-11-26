@@ -6,15 +6,16 @@ import Operario from '@/models/operarios';
 import Notificacion from '@/models/notificaciones';
 import transporter from '@/utils/GmailRes';
 import { run } from "@/libs/mongodb";
+import { use } from 'react';
 
 export async function POST(req: Request) {
 
   // Establecer conexión con la base de datos
   await run();
 
-  const { parkingId, userId, fechaReserva, seccion, numero } = await req.json();
+  const { parkingId, userId, fechaReserva } = await req.json();
 
-  if (!parkingId || !userId || !fechaReserva || !seccion || !numero) {
+  if (!parkingId || !userId || !fechaReserva ) {
     return new Response(JSON.stringify({ success: false, message: 'Parámetros faltantes' }), {
       status: 400,
       headers: {
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
 
     // Buscar el estacionamiento por el ID proporcionado
     const parkingSpot = await Parking.findById(parkingId);
-    if (!parkingSpot || parkingSpot.status !== 'enabled') {
+    if (!parkingSpot || parkingSpot.status !== 'disabled') {
       return new Response(JSON.stringify({ success: false, message: 'El estacionamiento no está disponible' }), {
         status: 400,
         headers: {
@@ -55,7 +56,8 @@ export async function POST(req: Request) {
         },
       });
     }
-
+    const seccion = parkingSpot.section;
+    const numero  = parkingSpot.number;
     const fechaReservaUsuario = new Date(fechaReserva);
     const fechaVencimiento = new Date(fechaReservaUsuario.getTime() + 60 * 60 * 1000); // 1 hora después
 
@@ -69,8 +71,7 @@ export async function POST(req: Request) {
     });
 
     await nuevaReserva.save();
-
-    parkingSpot.status = 'disabled';
+    parkingSpot.status = 'enabled';
     await parkingSpot.save();
 
     // Enviar el correo de confirmación al usuario
@@ -89,14 +90,14 @@ export async function POST(req: Request) {
     }
 
     const notificacionUsuario = new Notificacion({
-      user: userId, // ID del usuario que recibe la notificación
-      tipo: 'Reserva', // Tipo de notificación
+      user: userId,                                                                           // ID del usuario que recibe la notificación
+      tipo: 'Reserva',                                                                        // Tipo de notificación
       mensaje: `Reserva para el estacionamiento en la sección ${seccion}, número ${numero}.`, // Mensaje de la notificación
-      fechaEnvio: new Date(), // Fecha y hora de envío
-      nombreUsuario: user.UserName, // Nombre del usuario (debes asegurarte de obtener el nombre del usuario)
-      horaReserva: fechaReservaUsuario, // Hora de la reserva (debes obtenerla al crear la reserva)
-      estadoReserva: nuevaReserva.status, // Estado de la reserva
-      detallesReserva: { // Detalles de la reserva
+      fechaEnvio: new Date(),                                                                 // Fecha y hora de envío
+      nombreUsuario: user.UserName,                                                           // Nombre del usuario (debes asegurarte de obtener el nombre del usuario)
+      horaReserva: fechaReservaUsuario,                                                       // Hora de la reserva (debes obtenerla al crear la reserva)
+      estadoReserva: nuevaReserva.status,                                                      // Estado de la reserva
+      detallesReserva: {                                                                       // Detalles de la reserva
         seccion: seccion,
         numero: numero,
       },

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const uri = process.env.CLUSTER;
+const uri = process.env.MONGODB_URI;
 
 let isConnected: boolean = false; 
 
@@ -16,6 +16,7 @@ export async function run() {
       dbName: "Parking", 
     });
       
+    
     isConnected = true;
     console.log('Conectado a MongoDB');
     return mongoose;
