@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     // Validar datos de entrada
     if (!parkingId ) {
-      return NextResponse.json({ success: false, message: "Parámetros faltantes parkin" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Parámetros faltantes parking" }, { status: 400 });
     }
 
     // Buscar usuario

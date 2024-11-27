@@ -16,7 +16,6 @@ export default function Perfil() {
     const [showPopup, setShowPopup] = useState(false);
     const [vehiculos, setVehiculos] = useState([]);    
     const router = useRouter();
-
     const redirectToVehiculo = () => {
         router.push('/Vehiculo');
     };
@@ -167,7 +166,28 @@ export default function Perfil() {
             console.error('Error en la solicitud de cierre de sesión:', error);
         }
     };
+    const cancel = async() =>{
+        try {
+            const response = await fetch('/api/auth/cancelar_reserva', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Reserva cancelada', data);
+            } else {
+                console.error('Error');
+            }
+        } catch (error) {
+            console.error('Error en la cancelacion', error);
+        }
+    };
+
+    }
     return (
         <div>
             <Navbar />
@@ -198,6 +218,9 @@ export default function Perfil() {
                     )}
                     <button className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#D9D9D9] text-black">
                         <a href="/EditProfile">Editar Perfil</a>
+                    </button>
+                    <button onClick={cancel} className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-red-500 text-black">
+                        <a>Cancelar Reserva</a>
                     </button>
                     
                     <div className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#D9D9D9] text-black">
