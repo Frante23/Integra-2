@@ -243,12 +243,15 @@ export default function Perfil() {
                             </button>
                         </form>
                     )}
-                    <button
-                        className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#EDC557] text-black"
-                        onClick={() => setShowServiceForm(true)}
-                    >
-                        Solicitar Servicio VIP
-                    </button>
+                    {isVip && (
+                        <button
+                            className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#EDC557] text-black"
+                            onClick={() => setShowServiceForm(true)}
+                        >
+                            Solicitar Servicio VIP
+                        </button>
+                    )}
+
 
                     {showServiceForm && (
                         <Popup onClose={() => setShowServiceForm(false)} title="Solicitud de Servicio VIP">
