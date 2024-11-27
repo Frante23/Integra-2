@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     await nuevaReserva.save();
 
     // Actualizar estado del estacionamiento
-    parkingSpot.status = "disabled";
+    parkingSpot.status = "enabled";
     await parkingSpot.save();
 
     // Enviar correo al usuario

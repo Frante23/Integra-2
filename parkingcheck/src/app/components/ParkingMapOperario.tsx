@@ -34,10 +34,11 @@ const ParkingMapOperario = () => {
     );
     if (spot) {
       return spot.status === "enabled"
-        ? `${spot.userName}${spot.isVip ? " (VIP)" : ""}`
+        ? "Ocupado"
         : "Libre";
+    }else{
+      return "Libre"
     }
-    return "Libre";
   };
 
   const isReserved = (spotId: string) => {
