@@ -5,64 +5,55 @@ import User from '@/models/users';
 import Operario from '@/models/operarios';
 import Notificacion from '@/models/notificaciones';
 import transporter from '@/utils/GmailRes';
-import { run } from "@/libs/mongodb";
+import { run } from '@/libs/mongodb';
 
-export async function POST(req: Request) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Método no permitido' });
+  }
 
-  // Establecer conexión con la base de datos
+  // Conectar a la base de datos
   await run();
 
-  const { parkingId, userId, fechaReserva } = await req.json();
+  const { parkingId, userId, fechaReserva } = req.body;
 
-  if (!parkingId || !userId || !fechaReserva ) {
-    return new Response(JSON.stringify({ success: false, message: 'Parámetros faltantes' }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  // Validar parámetros
+  if (!parkingId || !userId || !fechaReserva) {
+    return res.status(400).json({ success: false, message: 'Parámetros faltantes' });
   }
 
   try {
-    // Buscar al usuario por el ID proporcionado
+    // Buscar al usuario
     const user = await User.findById(userId);
     if (!user) {
-      return new Response(JSON.stringify({ success: false, message: 'Usuario no encontrado' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    // Verificar si el usuario está penalizado
+    // Verificar penalización del usuario
     if (user.penalizadoHasta && user.penalizadoHasta > new Date()) {
-      return new Response(JSON.stringify({
+      return res.status(403).json({
         success: false,
         message: `Usuario penalizado hasta ${user.penalizadoHasta.toLocaleString()}`,
-    }), {
-        status: 403,
-    });
-}
-
-    // Buscar el estacionamiento por el ID proporcionado
-    const parkingSpot = await Parking.findById(parkingId);
-    if (!parkingSpot || parkingSpot.status !== 'disabled') {
-      return new Response(JSON.stringify({ success: false, message: 'El estacionamiento no está disponible' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
     }
-    const seccion = parkingSpot.section;
-    const numero  = parkingSpot.number;
+
+    // Buscar el estacionamiento
+    const parkingSpot = await Parking.findById(parkingId);
+    if (!parkingSpot || parkingSpot.status !== 'enabled') {
+      return res.status(400).json({ success: false, message: 'El estacionamiento no está disponible' });
+    }
+
+    // Detalles del estacionamiento
+    const { section: seccion, number: numero } = parkingSpot;
+
+    // Calcular fechas
     const fechaReservaUsuario = new Date(fechaReserva);
     const fechaVencimiento = new Date(fechaReservaUsuario.getTime() + 60 * 60 * 1000); // 1 hora después
 
+    // Crear la reserva
     const nuevaReserva = new Reserva({
-      seccion: seccion,
-      numero: numero,
+      seccion,
+      numero,
       id_usuario: userId,
       fechaReserva: fechaReservaUsuario,
       fechaExpiracion: fechaVencimiento,
@@ -70,10 +61,12 @@ export async function POST(req: Request) {
     });
 
     await nuevaReserva.save();
-    parkingSpot.status = 'enabled';
+
+    // Actualizar estado del estacionamiento
+    parkingSpot.status = 'disabled';
     await parkingSpot.save();
 
-    // Enviar el correo de confirmación al usuario
+    // Enviar correo al usuario
     const subjectUser = 'Confirmación de Reserva de Estacionamiento';
     const messageUser = `Estimado usuario ${user.UserName},\n\nTu reserva para el estacionamiento en la sección ${seccion}, número ${numero}, ha sido confirmada para la fecha ${fechaReservaUsuario}.\n\nLa reserva vencerá a las ${fechaVencimiento.toLocaleString()} si no llegas al lugar.\n\nSaludos,\nEquipo de Estacionamientos.`;
 
@@ -88,27 +81,26 @@ export async function POST(req: Request) {
       console.error('Error al enviar el correo al usuario:', error);
     }
 
+    // Guardar notificación para el usuario
     const notificacionUsuario = new Notificacion({
-      user: userId,                                                                           // ID del usuario que recibe la notificación
-      tipo: 'Reserva',                                                                        // Tipo de notificación
-      mensaje: `Reserva para el estacionamiento en la sección ${seccion}, número ${numero}.`, // Mensaje de la notificación
-      fechaEnvio: new Date(),                                                                 // Fecha y hora de envío
-      nombreUsuario: user.UserName,                                                           // Nombre del usuario (debes asegurarte de obtener el nombre del usuario)
-      horaReserva: fechaReservaUsuario,                                                       // Hora de la reserva (debes obtenerla al crear la reserva)
-      estadoReserva: nuevaReserva.status,                                                      // Estado de la reserva
-      detallesReserva: {                                                                       // Detalles de la reserva
-        seccion: seccion,
-        numero: numero,
+      user: userId,
+      tipo: 'Reserva',
+      mensaje: `Reserva para el estacionamiento en la sección ${seccion}, número ${numero}.`,
+      fechaEnvio: new Date(),
+      nombreUsuario: user.UserName,
+      horaReserva: fechaReservaUsuario,
+      estadoReserva: nuevaReserva.status,
+      detallesReserva: {
+        seccion,
+        numero,
       },
-      fechaExpiracion: fechaVencimiento, // Fecha de expiración de la reserva
+      fechaExpiracion: fechaVencimiento,
     });
-    
-    // Guardar la notificación en la base de datos
-    await notificacionUsuario.save();
-    
 
-    // Buscar a los operarios
-    const operarios = await Operario.find(); // Suponiendo que se quiere notificar a todos los operarios abierto a cambios :)
+    await notificacionUsuario.save();
+
+    // Notificar a los operarios
+    const operarios = await Operario.find();
     if (operarios && operarios.length > 0) {
       const subjectOperario = 'Nueva Reserva Creada';
       const messageOperario = `Estimado Operario,\n\nEl usuario ${user.UserName} ha creado una reserva en la sección ${seccion}, número ${numero}, a la hora ${fechaReservaUsuario}.\n\nSaludos,\nSistema de Estacionamientos.`;
@@ -121,43 +113,21 @@ export async function POST(req: Request) {
             subject: subjectOperario,
             text: messageOperario,
           });
-
-          // Guardar la notificación para cada operario
-          // en una coleccion para operarios operario 
-
-          //const notificacionOperario = new Notificacion({
-          //  user: operario._id,
-          //  tipo: 'Alerta Operario',
-          //  mensaje: `El usuario ${user.UserName} ha creado una reserva en la sección ${seccion}, número ${numero}.`,
-          //  fechaEnvio: new Date(),
-          //});
-          //await notificacionOperario.save();
-
         } catch (error) {
           console.error(`Error al enviar el correo al operario ${operario.OperatorName}:`, error);
         }
       }
     }
 
-    return new Response(JSON.stringify({
+    // Respuesta exitosa
+    return res.status(201).json({
       success: true,
       message: 'Reserva creada, correos y notificaciones enviadas correctamente',
       reserva: nuevaReserva,
       parkingSpot,
-    }), {
-      status: 201,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
-
   } catch (error) {
     console.error('Error al crear la reserva:', error);
-    return new Response(JSON.stringify({ success: false, message: 'Error al crear la reserva' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return res.status(500).json({ success: false, message: 'Error al crear la reserva' });
   }
 }
