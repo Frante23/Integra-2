@@ -89,7 +89,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
     if (!spot) return;
 
     try {
-      const response = await fetch("/api/Set_Parking", {
+      const response = await fetch("/api/auth/reserva", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
