@@ -1,97 +1,113 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import Reserva from '@/models/reserva';
-import Parking from '@/models/parking';
-import User from '@/models/users';
-import Operario from '@/models/operarios';
-import Notificacion from '@/models/notificaciones';
-import transporter from '@/utils/GmailRes';
-import { run } from '@/libs/mongodb';
+import { NextResponse } from "next/server";
+import { verify } from "jsonwebtoken";
+import { cookies } from "next/headers";
+import Reserva from "@/models/reserva";
+import Parking from "@/models/parking";
+import User from "@/models/users";
+import Operario from "@/models/operarios";
+import Notificacion from "@/models/notificaciones";
+import transporter from "@/utils/GmailRes";
+import { run } from "@/libs/mongodb";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Método no permitido' });
-  }
-
-  // Conectar a la base de datos
-  await run();
-
-  const { parkingId, userId, fechaReserva } = req.body;
-
-  // Validar parámetros
-  if (!parkingId || !userId || !fechaReserva) {
-    return res.status(400).json({ success: false, message: 'Parámetros faltantes' });
-  }
-
+// Crear una reserva
+export async function POST(req: Request) {
   try {
-    // Buscar al usuario
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    run();
+    const galleta = cookies();
+    const token = galleta?.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ message: "Token faltante o inválido" }, { status: 401 });
     }
 
-    // Verificar penalización del usuario
-    if (user.penalizadoHasta && user.penalizadoHasta > new Date()) {
-      return res.status(403).json({
-        success: false,
-        message: `Usuario penalizado hasta ${user.penalizadoHasta.toLocaleString()}`,
-      });
+    const secret = process.env.JWT_SECRET!;
+    const decoded = verify(token, secret) as { userId: string };
+
+    const data = await req.json();
+    const parkingId = data.Park;
+    const fechaReserva = data.DateTime;
+
+    if (!parkingId || !fechaReserva) {
+      return NextResponse.json(
+        { success: false, message: "Parámetros faltantes (estacionamiento o fecha)" },
+        { status: 400 }
+      );
+    }
+
+    const [Section, number] = parkingId.split("-");
+
+    // Buscar usuario
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    if (user.penalizadoHasta && new Date(user.penalizadoHasta) > new Date()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Usuario penalizado hasta ${new Date(user.penalizadoHasta).toLocaleString()}`,
+        },
+        { status: 403 }
+      );
     }
 
     // Buscar el estacionamiento
-    const parkingSpot = await Parking.findById(parkingId);
-    if (!parkingSpot || parkingSpot.status !== 'enabled') {
-      return res.status(400).json({ success: false, message: 'El estacionamiento no está disponible' });
+    const parkingSpot = await Parking.findOne({
+      section: Section,
+      number: number,
+    });
+
+    if (!parkingSpot || parkingSpot.status !== "disabled") {
+      return NextResponse.json(
+        { success: false, message: "El estacionamiento no está disponible" },
+        { status: 400 }
+      );
     }
 
-    // Detalles del estacionamiento
+    // Crear reserva
     const { section: seccion, number: numero } = parkingSpot;
-
-    // Calcular fechas
     const fechaReservaUsuario = new Date(fechaReserva);
-    const fechaVencimiento = new Date(fechaReservaUsuario.getTime() + 60 * 60 * 1000); // 1 hora después
+    const fechaVencimiento = new Date(fechaReservaUsuario.getTime() + 60 * 60 * 1000);
 
-    // Crear la reserva
     const nuevaReserva = new Reserva({
-      seccion,
-      numero,
-      id_usuario: userId,
+      seccion: Section,
+      numero: number,
+      id_usuario: user._id,
       fechaReserva: fechaReservaUsuario,
       fechaExpiracion: fechaVencimiento,
-      status: 'active',
+      status: "active",
     });
 
     await nuevaReserva.save();
 
     // Actualizar estado del estacionamiento
-    parkingSpot.status = 'disabled';
+    parkingSpot.status = "disabled";
     await parkingSpot.save();
 
     // Enviar correo al usuario
-    const subjectUser = 'Confirmación de Reserva de Estacionamiento';
-    const messageUser = `Estimado usuario ${user.UserName},\n\nTu reserva para el estacionamiento en la sección ${seccion}, número ${numero}, ha sido confirmada para la fecha ${fechaReservaUsuario}.\n\nLa reserva vencerá a las ${fechaVencimiento.toLocaleString()} si no llegas al lugar.\n\nSaludos,\nEquipo de Estacionamientos.`;
-
     try {
       await transporter.sendMail({
         from: process.env.GMAIL_USER,
         to: user.UserEmail,
-        subject: subjectUser,
-        text: messageUser,
+        subject: "Confirmación de Reserva de Estacionamiento",
+        text: `Estimado ${user.UserName},\n\nTu reserva para el estacionamiento en la sección ${Section}, número ${number}, ha sido confirmada.\n\nLa reserva vence el ${fechaVencimiento.toLocaleString()}.\n\nGracias por preferirnos.`,
       });
     } catch (error) {
-      console.error('Error al enviar el correo al usuario:', error);
+      console.error("Error al enviar correo al usuario:", error);
     }
 
-    // Guardar notificación para el usuario
+    // Crear notificación
     const notificacionUsuario = new Notificacion({
-      user: userId,
-      tipo: 'Reserva',
-      mensaje: `Reserva para el estacionamiento en la sección ${seccion}, número ${numero}.`,
+      user: user._id,
+      tipo: "Reserva",
+      mensaje: `Reserva creada en sección ${seccion}, número ${numero}.`,
       fechaEnvio: new Date(),
       nombreUsuario: user.UserName,
       horaReserva: fechaReservaUsuario,
       estadoReserva: nuevaReserva.status,
       detallesReserva: {
-        seccion,
+        seccion, 
         numero,
       },
       fechaExpiracion: fechaVencimiento,
@@ -101,33 +117,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Notificar a los operarios
     const operarios = await Operario.find();
-    if (operarios && operarios.length > 0) {
-      const subjectOperario = 'Nueva Reserva Creada';
-      const messageOperario = `Estimado Operario,\n\nEl usuario ${user.UserName} ha creado una reserva en la sección ${seccion}, número ${numero}, a la hora ${fechaReservaUsuario}.\n\nSaludos,\nSistema de Estacionamientos.`;
-
-      for (const operario of operarios) {
-        try {
-          await transporter.sendMail({
-            from: process.env.GMAIL_USER,
-            to: operario.OperatorEmail,
-            subject: subjectOperario,
-            text: messageOperario,
-          });
-        } catch (error) {
-          console.error(`Error al enviar el correo al operario ${operario.OperatorName}:`, error);
-        }
+    for (const operario of operarios) {
+      try {
+        await transporter.sendMail({
+          from: process.env.GMAIL_USER,
+          to: operario.OperatorEmail,
+          subject: "Nueva Reserva Creada",
+          text: `El usuario ${user.UserName} ha creado una reserva en la sección ${seccion}, número ${numero}.`,
+        });
+      } catch (error) {
+        console.error(`Error al notificar a ${operario.OperatorName}:`, error);
       }
     }
 
-    // Respuesta exitosa
-    return res.status(201).json({
+    return NextResponse.json({
       success: true,
-      message: 'Reserva creada, correos y notificaciones enviadas correctamente',
+      message: "Reserva creada, correos y notificaciones enviadas correctamente",
       reserva: nuevaReserva,
       parkingSpot,
-    });
+    }, { status: 201 });
+
   } catch (error) {
-    console.error('Error al crear la reserva:', error);
-    return res.status(500).json({ success: false, message: 'Error al crear la reserva' });
+    console.error("Error en el servidor:", error);
+    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 });
   }
 }
