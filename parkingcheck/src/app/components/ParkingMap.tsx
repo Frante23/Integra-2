@@ -5,6 +5,8 @@ import React, { useEffect, useState } from "react";
 const ParkingMap = ({ isVip }: { isVip: boolean }) => {
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
   const [occupiedSpots, setOccupiedSpots] = useState<string[]>([]);
+  const [showForm, setShowForm] = useState<boolean>(false); 
+  const [dateTime, setDateTime] = useState<string>("");
 
   const allSpots = [
     ...Array.from({ length: 13 }, (_, i) => `A-${i + 1}`),
@@ -26,14 +28,14 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
       const randomSpot = getRandomSpot();
       setSelectedSpot(randomSpot);
       localStorage.setItem("selectedSpot", randomSpot);
-      reserveParkingSpot(randomSpot);
+
     }
   }, [isVip]);
 
   useEffect(() => {
     const fetchOccupiedSpots = async () => {
       try {
-        const response = await fetch("/api/parking");
+        const response = await fetch("/api/auth/reserva");
         const data = await response.json();
         if (response.ok) {
           setOccupiedSpots(data.estacionamientos.Park);
@@ -63,6 +65,40 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
     }
   };
 
+  const handleFormSubmit = async () => {
+    if (!selectedSpot || !dateTime) {
+      alert("Debe seleccionar un estacionamiento y una fecha/hora.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/reserva", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Park: selectedSpot,
+          DateTime: dateTime,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("Reserva confirmada");
+        setShowForm(false);
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error al conectar con la API:", error);
+      alert("Error al realizar la solicitud.");
+    }
+  };
+
+
+
+
   const ParkingSpot = ({ id, specialHeight }: { id: string; specialHeight?: string }) => (
     <div
       className={`parking-spot ${selectedSpot === id ? "selected" : ""} ${
@@ -79,15 +115,12 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
       }}
     >
       {id}
-      <div className="tooltip">
-        aaaaaa
-      </div>
     </div>
   );
 
   const reserveParkingSpot = async (spot: string) => {
     if (!spot) return;
-
+  
     try {
       const response = await fetch("/api/auth/reserva", {
         method: "POST",
@@ -96,33 +129,18 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
         },
         body: JSON.stringify({ Park: spot }),
       });
-
+  
       const data = await response.json();
       if (response.ok) {
         console.log("Estacionamiento reservado:", data.park);
       } else {
-        if (data.status === "occupied") {
-          if (!isVip) {
-            alert("Estacionamiento ocupado");
-            const randomSpot = getRandomSpot();
-            setSelectedSpot(randomSpot);
-            localStorage.setItem("selectedSpot", randomSpot);
-          } else {
-            alert("Estacionamiento ocupado");
-          }
-        } else {
-          console.error("Error reservando estacionamiento:", data.message);
-          if (!isVip) {
-            const newRandomSpot = getRandomSpot();
-            setSelectedSpot(newRandomSpot);
-            localStorage.setItem("selectedSpot", newRandomSpot);
-          }
-        }
+        console.error("Error reservando estacionamiento:", data.message);
       }
     } catch (error) {
       console.error("Error al conectar con la API:", error);
     }
   };
+  
 
   return (
     <div className="centralReserve">
@@ -175,14 +193,29 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
         </div>
       </div>
       {selectedSpot && (
-        <div className="reserveButton bg-sky-500">
-          <button onClick={() => reserveParkingSpot(selectedSpot)}>
-            Confirmar Selección
-          </button>
+        <div>
+          <button onClick={() => setShowForm(true)}>Confirmar Selección</button>
+        </div>
+      )}
+      {showForm && (
+        <div>
+          <h3>Confirmar Reserva</h3>
+          <p>Estacionamiento seleccionado: {selectedSpot}</p>
+          <label>
+            Fecha y hora:
+            <input
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => setDateTime(e.target.value)}
+            />
+          </label>
+          <button onClick={handleFormSubmit}>Reservar</button>
+          <button onClick={() => setShowForm(false)}>Cancelar</button>
         </div>
       )}
     </div>
   );
 };
+
 
 export default ParkingMap;

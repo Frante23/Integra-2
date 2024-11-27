@@ -9,12 +9,11 @@ import Notificacion from "@/models/notificaciones";
 import transporter from "@/utils/GmailRes";
 import { run } from "@/libs/mongodb";
 
-
-
+// Crear una reserva
 export async function POST(req: Request) {
   try {
     run();
-    const  galleta  = cookies();
+    const galleta = cookies();
     const token = galleta?.get("token")?.value;
 
     if (!token) {
@@ -26,16 +25,16 @@ export async function POST(req: Request) {
 
     const data = await req.json();
     const parkingId = data.Park;
-    const [Section, number] = parkingId.split("-");
-    
-    console.log(parkingId)
+    const fechaReserva = data.DateTime;
 
-
-
-    // Validar datos de entrada
-    if (!parkingId ) {
-      return NextResponse.json({ success: false, message: "Parámetros faltantes parkin" }, { status: 400 });
+    if (!parkingId || !fechaReserva) {
+      return NextResponse.json(
+        { success: false, message: "Parámetros faltantes (estacionamiento o fecha)" },
+        { status: 400 }
+      );
     }
+
+    const [Section, number] = parkingId.split("-");
 
     // Buscar usuario
     const user = await User.findById(decoded.userId);
@@ -44,10 +43,13 @@ export async function POST(req: Request) {
     }
 
     if (user.penalizadoHasta && new Date(user.penalizadoHasta) > new Date()) {
-      return NextResponse.json({
-        success: false,
-        message: `Usuario penalizado hasta ${new Date(user.penalizadoHasta).toLocaleString()}`,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Usuario penalizado hasta ${new Date(user.penalizadoHasta).toLocaleString()}`,
+        },
+        { status: 403 }
+      );
     }
 
     // Buscar el estacionamiento
@@ -55,19 +57,22 @@ export async function POST(req: Request) {
       section: Section,
       number: number,
     });
+
     if (!parkingSpot || parkingSpot.status !== "disabled") {
-      return NextResponse.json({ success: false, message: "El estacionamiento no está disponible" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "El estacionamiento no está disponible" },
+        { status: 400 }
+      );
     }
 
-    const { section: seccion, number: numero } = parkingSpot;
-    const fechaReserva = "2024-10-22T18:30:00Z";
     // Crear reserva
+    const { section: seccion, number: numero } = parkingSpot;
     const fechaReservaUsuario = new Date(fechaReserva);
     const fechaVencimiento = new Date(fechaReservaUsuario.getTime() + 60 * 60 * 1000);
 
     const nuevaReserva = new Reserva({
-      seccion,
-      numero,
+      seccion: Section,
+      numero: number,
       id_usuario: user._id,
       fechaReserva: fechaReservaUsuario,
       fechaExpiracion: fechaVencimiento,
@@ -77,7 +82,7 @@ export async function POST(req: Request) {
     await nuevaReserva.save();
 
     // Actualizar estado del estacionamiento
-    parkingSpot.status = "enabled";
+    parkingSpot.status = "disabled";
     await parkingSpot.save();
 
     // Enviar correo al usuario
@@ -86,7 +91,7 @@ export async function POST(req: Request) {
         from: process.env.GMAIL_USER,
         to: user.UserEmail,
         subject: "Confirmación de Reserva de Estacionamiento",
-        text: `Estimado ${user.UserName},\n\nTu reserva para el estacionamiento en la sección ${seccion}, número ${numero}, ha sido confirmada.\n\nLa reserva vence el ${fechaVencimiento.toLocaleString()}.\n\nGracias por preferirnos.`,
+        text: `Estimado ${user.UserName},\n\nTu reserva para el estacionamiento en la sección ${Section}, número ${number}, ha sido confirmada.\n\nLa reserva vence el ${fechaVencimiento.toLocaleString()}.\n\nGracias por preferirnos.`,
       });
     } catch (error) {
       console.error("Error al enviar correo al usuario:", error);
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
       horaReserva: fechaReservaUsuario,
       estadoReserva: nuevaReserva.status,
       detallesReserva: {
-        seccion,
+        seccion, 
         numero,
       },
       fechaExpiracion: fechaVencimiento,
