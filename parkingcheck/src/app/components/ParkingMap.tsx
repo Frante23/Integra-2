@@ -104,7 +104,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
         if (data.status === "occupied") {
           if (!isVip) {
             alert("Estacionamiento ocupado");
-            const randomSpot = getRandomSpot();
+             const randomSpot = getRandomSpot();
             setSelectedSpot(randomSpot);
             localStorage.setItem("selectedSpot", randomSpot);
           } else {
@@ -119,7 +119,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
           }
         }
       }
-    } catch (error) {
+    }catch (error) {
       console.error("Error al conectar con la API:", error);
     }
   };

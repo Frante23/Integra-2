@@ -14,7 +14,7 @@ export default function MainPage() {
             router.push('/loginOperators'); 
         }
     };
-
+    
     return (
         <div>
             <Navbar /> {}

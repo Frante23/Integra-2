@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
                 message: 'Contraseña incorrecta',
             }, { status: 400 });
         }
-
+        
         const token = jwt.sign(
-            { operarioId: OperarioFind._id, email: OperarioFind.OperatorEmail },
+            {operarioId: OperarioFind._id, username: OperarioFind.OperatorName, email: OperarioFind.OperatorEmail },
             process.env.JWT_SECRET || 'default_secret',
             { expiresIn: '8h' }
         );

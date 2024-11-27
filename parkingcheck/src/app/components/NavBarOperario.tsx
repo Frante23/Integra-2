@@ -29,7 +29,7 @@ export const NavbarOperario = () => {
                 </button>
                 {showMenu && (
                     <div className="menu-dropdown">
-                        <a href="/Perfil" className="block px-4 py-2 text-gray-800 hover:bg-gray-200">Mi Perfil</a> 
+                        <a href="/PerfilOperario" className="block px-4 py-2 text-gray-800 hover:bg-gray-200">Mi Perfil</a> 
                         <a href="/Reports_Operator" className="block px-4 py-2 text-gray-800 hover:bg-gray-200">Reporte</a>
                         <a href="/HomeOperators" className="block px-4 py-2 text-gray-800 hover:bg-gray-200">Home</a>
                     </div>
