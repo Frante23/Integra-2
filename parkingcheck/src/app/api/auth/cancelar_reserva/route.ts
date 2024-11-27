@@ -7,13 +7,19 @@ import { run } from "@/libs/mongodb";
 
 export async function POST(){
     try {
-        run();
-
+        await run()
+        const galleta = cookies();
+        const token = galleta?.get("token")?.value;
+    
+        if (!token) {
+          return NextResponse.json({ message: "Token faltante o inválido" }, { status: 401 });
+        }
+    
         const secret = process.env.JWT_SECRET!;
-        const usuario = "6746685bcf5e388ca2c8b19d"
+        const usuario = verify(token, secret) as { userId: string };
         
         const reserva = await Reserva.findOneAndUpdate({
-            id_usuario : usuario,
+            id_usuario : usuario.userId,
             status: "active"
         },{status : "cancelled"}, {new: true} )
         console.log(reserva)
@@ -21,6 +27,6 @@ export async function POST(){
 
     }
     catch(error){
-        console.error("Error en reservar", error)
+        console.error("Error en cancelar", error)
     } 
 }

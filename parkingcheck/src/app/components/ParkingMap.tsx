@@ -18,7 +18,10 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
     ...Array.from({ length: 13 }, (_, i) => `G-${i + 1}`),
     ...Array.from({ length: 12 }, (_, i) => `H-${i + 1}`),
   ];
-
+  
+  const getRandomSpot = () => {
+    return allSpots[Math.floor(Math.random() * allSpots.length)];
+  };
   useEffect(() => {
     const storedSpot = localStorage.getItem("selectedSpot");
 
@@ -48,9 +51,7 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
     fetchOccupiedSpots();
   }, []);
 
-  const getRandomSpot = () => {
-    return allSpots[Math.floor(Math.random() * allSpots.length)];
-  };
+
 
   const handleSpotClick = (spotId: string) => {
     if (isVip) {
