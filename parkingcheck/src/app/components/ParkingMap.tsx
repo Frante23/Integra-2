@@ -193,29 +193,89 @@ const ParkingMap = ({ isVip }: { isVip: boolean }) => {
         </div>
       </div>
       {selectedSpot && (
-        <div>
-          <button onClick={() => setShowForm(true)}>Confirmar Selección</button>
+        <div style={{ marginTop: "20px", textAlign: "center" }}>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              backgroundColor: "#007BFF",
+              color: "#fff",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "5px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            Confirmar Selección
+          </button>
         </div>
       )}
+
       {showForm && (
-        <div>
-          <h3>Confirmar Reserva</h3>
-          <p>Estacionamiento seleccionado: {selectedSpot}</p>
-          <label>
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "20px",
+            backgroundColor: "#f9f9f9",
+            borderRadius: "10px",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            maxWidth: "400px",
+            margin: "0 auto",
+          }}
+        >
+          <h3 style={{ textAlign: "center", color: "#333" }}>Confirmar Reserva</h3>
+          <p style={{ textAlign: "center", marginBottom: "10px", color: "#555" }}>
+            Estacionamiento seleccionado: <strong>{selectedSpot}</strong>
+          </p>
+          <label style={{ display: "block", marginBottom: "10px", color: "#555" }}>
             Fecha y hora:
             <input
               type="datetime-local"
               value={dateTime}
               onChange={(e) => setDateTime(e.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "8px",
+                marginTop: "5px",
+                border: "1px solid #ccc",
+                borderRadius: "5px",
+              }}
             />
           </label>
-          <button onClick={handleFormSubmit}>Reservar</button>
-          <button onClick={() => setShowForm(false)}>Cancelar</button>
+          <div style={{ textAlign: "center", marginTop: "15px" }}>
+            <button
+              onClick={handleFormSubmit}
+              style={{
+                backgroundColor: "#28a745",
+                color: "#fff",
+                border: "none",
+                padding: "10px 20px",
+                borderRadius: "5px",
+                marginRight: "10px",
+                cursor: "pointer",
+              }}
+            >
+              Reservar
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              style={{
+                backgroundColor: "#dc3545",
+                color: "#fff",
+                border: "none",
+                padding: "10px 20px",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 };
-
 
 export default ParkingMap;
