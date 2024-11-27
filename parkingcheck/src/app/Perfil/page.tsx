@@ -12,8 +12,9 @@ export default function Perfil() {
     const [UserId, setUserId] = useState('');
     const [isVip, setIsVip] = useState<boolean | null>(null);
     const [userInfo, setUserInfo] = useState(null);
-    const [error, setError] = useState<string | null>(null);
     const [showPopup, setShowPopup] = useState(false);
+    const [showServiceForm, setShowServiceForm] = useState(false); 
+    const [servicio, setServicio] = useState('');
     const [vehiculos, setVehiculos] = useState([]);    
     const router = useRouter();
     const redirectToVehiculo = () => {
@@ -38,6 +39,32 @@ export default function Perfil() {
             setError(err.message);
         }
     };
+
+    const handleSubmitServiceRequest = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('/api/auth/soliVip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: UserId, servicio }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                console.log('Solicitud VIP enviada:', data);
+                alert('Su solicitud a sido enviada con exito, pronto llegara su pedido');
+                setShowServiceForm(false);
+                setServicio('');
+            } else {
+                console.error('Error en la solicitud:', data.message);
+                alert('Error al enviar la solicitud.');
+            }
+        } catch (error) {
+            console.error('Error en la solicitud de servicio:', error);
+        }
+    };
+
 
     const fetchVehiculos = async () => {
         try {
@@ -216,6 +243,34 @@ export default function Perfil() {
                             </button>
                         </form>
                     )}
+                    <button
+                        className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#EDC557] text-black"
+                        onClick={() => setShowServiceForm(true)}
+                    >
+                        Solicitar Servicio VIP
+                    </button>
+
+                    {showServiceForm && (
+                        <Popup onClose={() => setShowServiceForm(false)} title="Solicitud de Servicio VIP">
+                            <form onSubmit={handleSubmitServiceRequest} className="flex flex-col">
+                                <label className="mb-2 font-bold">Servicio solicitado:</label>
+                                <input
+                                    type="text"
+                                    value={servicio}
+                                    onChange={(e) => setServicio(e.target.value)}
+                                    required
+                                    className="p-2 border rounded"
+                                />
+                                <button
+                                    type="submit"
+                                    className="bg-blue-500 text-white p-2 mt-4 rounded"
+                                >
+                                    Enviar Solicitud
+                                </button>
+                            </form>
+                        </Popup>
+                    )}
+
                     <button className="w-[90%] font-bold p-3 text-lg mt-5 border-0 rounded-full cursor-pointer bg-[#D9D9D9] text-black">
                         <a href="/EditProfile">Editar Perfil</a>
                     </button>
