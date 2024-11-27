@@ -2,7 +2,6 @@
 
 import { NavbarOperario } from '../components/NavBarOperario';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface Report {
     _id: string;
@@ -36,29 +35,48 @@ const Reports = () => {
     }, []);
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+        <div className="flex flex-col h-screen bg-gray-100">
+            {}
             <NavbarOperario />
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-                <h1>Reports</h1>
+
+            {}
+            <div className="flex-1 p-8 overflow-y-auto">
+                <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
+                    Reportes Pendientes
+                </h1>
                 {error ? (
-                    <div>Error: {error}</div>
+                    <div className="text-red-600 text-center font-semibold">
+                        Error: {error}
+                    </div>
                 ) : (
-                    <ul style={{ listStyle: "none", padding: 0 }}>
+                    <div className="space-y-6">
                         {reports.length > 0 ? (
                             reports.map((report) => (
-                                <li key={report._id} style={{ marginBottom: "20px" }}>
-                                    <div style={{ borderBottom: "1px solid #ccc", paddingBottom: "10px" }}>
-                                        <h2><strong>Titulo: </strong>{report.titulo}</h2>
-                                        <p><strong>Usuario ID:</strong> {report.usuarioID}</p>
-                                        <p><strong>Fecha:</strong> {new Date(report.fecha).toLocaleString()}</p>
-                                        <p><strong>Descripción:</strong> {report.descripcion}</p>
-                                    </div>
-                                </li>
+                                <div
+                                    key={report._id}
+                                    className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                >
+                                    <h2 className="text-2xl font-semibold text-gray-800">
+                                        {report.titulo}
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        <strong>Usuario ID:</strong> {report.usuarioID}
+                                    </p>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        <strong>Fecha:</strong>{" "}
+                                        {new Date(report.fecha).toLocaleString()}
+                                    </p>
+                                    <p className="mt-4 text-gray-700">
+                                        <strong>Descripción:</strong> {report.descripcion}
+                                    </p>
+                                </div>
                             ))
                         ) : (
-                            <p>No hay reportes por solucionar</p>
+                            <p className="text-center text-gray-600">
+                                No hay reportes por solucionar.
+                            </p>
                         )}
-                    </ul>
+                    </div>
                 )}
             </div>
         </div>
