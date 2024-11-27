@@ -5,83 +5,81 @@ import React, { useEffect, useState } from "react";
 interface ParkingSpot {
   section: string;
   number: string;
-  id: string;
+  status: string;
+  userName: string;
+  isVip: boolean;
 }
 
 const ParkingMapOperario = () => {
-  const [ocupados, setOcupados] = useState<string[]>([]);
-  const [reservas, setReservas] = useState<any[]>([]);
+  const [estacionamientos, setEstacionamientos] = useState<ParkingSpot[]>([]);
 
   useEffect(() => {
     const fetchEstacionamientos = async () => {
       try {
-        const responseParking = await fetch("/api/Get_Parking", { method: "GET" });
-        if (!responseParking.ok) throw new Error(`Error HTTP: ${responseParking.status}`);
-        const dataParking = await responseParking.json();
-        setOcupados(dataParking.estacionamientos.Park || []);
+        const response = await fetch("/api/Get_Parking", { method: "GET" });
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const data = await response.json();
+        setEstacionamientos(data.estacionamientos || []);
       } catch (error) {
-        console.error("Error al obtener los estacionamientos ocupados:", error);
-      }
-    };
-
-    const fetchReservas = async () => {
-      try {
-        const responseReservas = await fetch("/api/reservas", { method: "GET" });
-        if (!responseReservas.ok) throw new Error(`Error HTTP: ${responseReservas.status}`);
-        const dataReservas = await responseReservas.json();
-        setReservas(dataReservas);
-      } catch (error) {
-        console.error("Error al obtener las reservas:", error);
+        console.error("Error al obtener los estacionamientos:", error);
       }
     };
 
     fetchEstacionamientos();
-    fetchReservas();
   }, []);
 
-  const isReserved = (spotId: string) => ocupados.includes(spotId);
-
   const getReservationInfo = (spotId: string) => {
-    const reserva = reservas.find((reserva) => reserva.numero === spotId);
-    return reserva
-      ? `Usuario: ${reserva.id_usuario}, Fecha Reserva: ${new Date(reserva.fechaReserva).toLocaleString()}`
-      : "Libre";
+    const spot = estacionamientos.find(
+      (reserva) => `${reserva.section}-${reserva.number}` === spotId
+    );
+    if (spot) {
+      return spot.status === "enabled"
+        ? `${spot.userName}${spot.isVip ? " (VIP)" : ""}`
+        : "Libre";
+    }
+    return "Libre";
   };
 
+  const isReserved = (spotId: string) => {
+    const spot = estacionamientos.find(
+      (reserva) => `${reserva.section}-${reserva.number}` === spotId
+    );
+    return spot ? spot.status === "enabled" : false;
+  };
   const ParkingSpot = ({ id, specialHeight }: { id: string; specialHeight?: string }) => (
     <div
-      className={`parking-spot ${isReserved(id) ? "reserved" : ""}`}
-      style={{
-        height: specialHeight || "auto",
-        border: "1px solid #ccc",
-        margin: "5px",
-        textAlign: "center",
-        backgroundColor: isReserved(id) ? "red" : "green", // Rojo si está ocupado, verde si está libre
-        color: "white",
-        position: "relative",
-      }}
-    >
-      {id}
-      <div
-        className="tooltip"
+        className={`parking-spot ${isReserved(id) ? "reserved" : ""}`}
         style={{
-          position: "absolute",
-          bottom: "100%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "#333",
-          color: "#fff",
-          padding: "5px",
-          borderRadius: "4px",
-          whiteSpace: "nowrap",
-          zIndex: 10,
-          visibility: "visible",
+            height: specialHeight || "auto",
+            border: "1px solid #ccc",
+            margin: "5px",
+            textAlign: "center",
+            backgroundColor: isReserved(id) ? "red" : "green", // Rojo si está ocupado, verde si está libre
+            color: "white",
+            position: "relative",
         }}
-      >
-        {getReservationInfo(id)}
-      </div>
+    >
+        {id}
+        <div
+            className="tooltip"
+            style={{
+                position: "absolute",
+                bottom: "100%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "#333",
+                color: "#fff",
+                padding: "5px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
+                zIndex: 10,
+                visibility: "visible",
+            }}
+        >
+            {getReservationInfo(id)}
+        </div>
     </div>
-  );
+);
 
   return (
     <div className="centralReserve">
